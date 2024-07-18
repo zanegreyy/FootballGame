@@ -429,17 +429,18 @@ function levelUp() {
             updateStats();
             updateScoreStat();
             
+            
             showLevelTransition(currentLevel + 1);
         } else {
             announceWinner("Human!!");
         }
     } else if (paddle2.score === 3) {
         showUnluckyMessage();
+        // To display scores
+        
+
     }
 }
-
-
-
 
 function announceWinner(winner) {
     alert(winner + ' wins!');
@@ -455,7 +456,7 @@ function announceWinner(winner) {
     // Update score display in UI
     updateScoreStat();
     
-    // Reset current level
+    // Reset current levels
     currentLevel = 0;
     
     // Stop game
