@@ -12,7 +12,9 @@
         }
         body {
             overflow: hidden;
-            background-color: #222; /* Dark background */
+        }
+        #canvas {
+            background-color: green;
         }
         h1 {
             font-family: sans-serif;
@@ -38,49 +40,70 @@
             padding: 10px 20px;
             font-size: 20px;
             cursor: pointer;
-            background-color: #33ff00; /* Green button */
-            color: #222; /* Dark text on button */
+            background-color: black; /* Green button */
+            color: white; /* Dark text on button */
             border: none;
             border-radius: 5px;
         }
-        #levelMessage {
-            position: absolute;
-            top: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: #fff;
-            font-size: 24px;
-        }
+    #levelMessage {
+        position: absolute;
+        top: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: black;
+        font-size: 24px;
+    }
         div {
             padding-top: 15px;
         }
+
+        #stats {
+            top: 10px;
+            right: 10px;
+            text-align: center;
+        }
+
+        #stats p {
+            margin: 5px 0;
+        }
+
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
-    <h1 id="player1Score">0</h1>
-    <h1 id="player2Score">0</h1>
     <button id="startButton">Start Game!</button>
     <div id="levelMessage"></div>
+    <div id="stats">
+            <p id="paddle1ScoreElement">Human:</p>
+            <p id="paddle2ScoreElement">AI:</p>
+            <br>
+            <p id="levelStat">Level:</p>
+            <p id="aiDifficultyStat">AI Difficulty: 0.50</p>
+            <p id="goalBitsStat">GoalBits Earned: 0</p>
+    </div>
     
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const startButton = document.getElementById('startButton');
         const levelMessage = document.getElementById('levelMessage');
-        // getting the user ID from Telegram to award coins and nft 
-        const urlParams = new URLSearchParams(window.location.search);
-        const currentUserId = urlParams.get('user_id');
-
+        const levelStat = document.getElementById('levelStat');
+        const aiDifficultyStat = document.getElementById('aiDifficultyStat');
+        const goalBitsStat = document.getElementById('goalBitsStat');
+        const paddle1ScoreElement = document.getElementById('paddle1ScoreElement');
+        const paddle2ScoreElement = document.getElementById('paddle2ScoreElement');
+        
+        
         canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
+        canvas.height = window.innerHeight * 0.75;
+        
         const keysPressed = [];
         const KEY_LEFT = 37;
         const KEY_RIGHT = 39;
+        let goalBitsEarned = 0;
 
         let touchStartX = 0;
-        let isTouching = false; // Flag to track if the touch is active
+        let isTouching = false;
 
         canvas.addEventListener('touchstart', function (e) {
             touchStartX = e.touches[0].clientX;
@@ -88,15 +111,13 @@
         });
 
         canvas.addEventListener('touchmove', function (e) {
-            e.preventDefault(); // Prevent scrolling on touch devices
+            e.preventDefault();
 
             if (isTouching) {
                 const touchX = e.touches[0].clientX;
                 const deltaX = touchX - touchStartX;
-
-                // Update paddle1 position based on touch movement
                 paddle1.pos.x += deltaX;
-                touchStartX = touchX; // Update touchStartX for next move
+                touchStartX = touchX;
             }
         });
 
@@ -104,10 +125,9 @@
             isTouching = false;
         });
 
-        // Resize canvas on window resize
         window.addEventListener('resize', function () {
             canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            canvas.height = window.innerHeight * 0.75;
         });
 
         window.addEventListener('keydown', function(e) {
@@ -133,13 +153,12 @@
                 this.pos.y += this.velocity.y;
 
                 this.trail.push({ x: this.pos.x, y: this.pos.y });
-                if (this.trail.length > 20) { // Increased trail length
+                if (this.trail.length > 20) {
                     this.trail.shift();
                 }
             };
 
             this.draw = function () {
-                // Draw the ball
                 ctx.fillStyle = "white";
                 ctx.strokeStyle = "white";
                 ctx.beginPath();
@@ -147,13 +166,11 @@
                 ctx.fill();
                 ctx.stroke();
 
-                // Draw ball trail with fade-out and flame effect
                 ctx.lineWidth = 12;
                 for (let i = 0; i < this.trail.length - 1; i++) {
-                    let alpha = 1 - i / this.trail.length; // Fade out effect
-                    let hue = (i * 10) % 60; // Alternating flame colors (red to yellow)
+                    let alpha = 1 - i / this.trail.length;
+                    let hue = (i * 10) % 60;
                     
-                    // Flame effect
                     let gradient = ctx.createLinearGradient(
                         this.trail[i].x, this.trail[i].y,
                         this.trail[i + 1].x, this.trail[i + 1].y
@@ -167,7 +184,6 @@
                     ctx.lineTo(this.trail[i + 1].x, this.trail[i + 1].y);
                     ctx.stroke();
 
-                    // Add some flame particles
                     if (i % 3 === 0) {
                         let angle = Math.atan2(this.trail[i + 1].y - this.trail[i].y, this.trail[i + 1].x - this.trail[i].x);
                         let particleSize = 2 * alpha;
@@ -185,43 +201,78 @@
         }
 
 
-        
-        function Paddle(pos, velocity, width, height) {
-            this.pos = pos;
-            this.velocity = velocity;
-            this.width = width;
-            this.height = height;
-            this.score = 0;
+// Paddle Functions
+function Paddle(pos, velocity, width, height) {
+    this.pos = pos;
+    this.velocity = velocity;
+    this.width = width;
+    this.height = height;
+    this.score = 0;
 
-            this.update = function () {
-                if (keysPressed[KEY_LEFT]) {
-                    this.pos.x -= this.velocity.x;
-                }
-                if (keysPressed[KEY_RIGHT]) {
-                    this.pos.x += this.velocity.x;
-                }
-            };
-
-            this.draw = function () {
-                ctx.fillStyle = "#33ff00";
-                ctx.fillRect(this.pos.x, this.pos.y, this.width, this.height);
-            };
-
-            this.getHalfWidth = function() {
-                return this.width / 2;
-            };
-
-            this.getHalfHeight = function() {
-                return this.height / 2;
-            };
-
-            this.getCenter = function() {
-                return vec2(
-                    this.pos.x + this.getHalfWidth(),
-                    this.pos.y + this.getHalfHeight()
-                );
-            };
+    this.update = function () {
+        if (keysPressed[KEY_LEFT]) {
+            this.pos.x -= this.velocity.x;
         }
+        if (keysPressed[KEY_RIGHT]) {
+            this.pos.x += this.velocity.x;
+        }
+    };
+
+    this.draw = function () {
+        // Create gradient
+        let gradient = ctx.createLinearGradient(this.pos.x, this.pos.y, this.pos.x, this.pos.y + this.height);
+        gradient.addColorStop(0, "#33ff00");
+        gradient.addColorStop(1, "#009900");
+
+        // Fill with gradient
+        ctx.fillStyle = gradient;
+
+        // Rounded corners
+        let cornerRadius = 10;
+        ctx.beginPath();
+        ctx.moveTo(this.pos.x + cornerRadius, this.pos.y);
+        ctx.lineTo(this.pos.x + this.width - cornerRadius, this.pos.y);
+        ctx.quadraticCurveTo(this.pos.x + this.width, this.pos.y, this.pos.x + this.width, this.pos.y + cornerRadius);
+        ctx.lineTo(this.pos.x + this.width, this.pos.y + this.height - cornerRadius);
+        ctx.quadraticCurveTo(this.pos.x + this.width, this.pos.y + this.height, this.pos.x + this.width - cornerRadius, this.pos.y + this.height);
+        ctx.lineTo(this.pos.x + cornerRadius, this.pos.y + this.height);
+        ctx.quadraticCurveTo(this.pos.x, this.pos.y + this.height, this.pos.x, this.pos.y + this.height - cornerRadius);
+        ctx.lineTo(this.pos.x, this.pos.y + cornerRadius);
+        ctx.quadraticCurveTo(this.pos.x, this.pos.y, this.pos.x + cornerRadius, this.pos.y);
+        ctx.closePath();
+        ctx.fill();
+
+        // Border
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = "#006600";
+        ctx.stroke();
+
+        // Shadow
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = 5;
+        ctx.shadowOffsetY = 5;
+
+        // Restore default shadow settings
+        ctx.shadowColor = 'transparent';
+    };
+
+    this.getHalfWidth = function() {
+        return this.width / 2;
+    };
+
+    this.getHalfHeight = function() {
+        return this.height / 2;
+    };
+
+    this.getCenter = function() {
+        return vec2(
+            this.pos.x + this.getHalfWidth(),
+            this.pos.y + this.getHalfHeight()
+        );
+    };
+}
+
 
         function paddleCollisionWithTheEdges(paddle) {
             paddle.pos.x = Math.max(0, Math.min(paddle.pos.x, canvas.width - paddle.width));
@@ -236,144 +287,151 @@
             }
         }
 
-function ballPaddleCollision(ball, paddle) {
-    let dx = Math.abs(ball.pos.x - paddle.getCenter().x);
-    let dy = Math.abs(ball.pos.y - paddle.getCenter().y);
+        function ballPaddleCollision(ball, paddle) {
+            let dx = Math.abs(ball.pos.x - paddle.getCenter().x);
+            let dy = Math.abs(ball.pos.y - paddle.getCenter().y);
 
-    if (dx <= (ball.radius + paddle.getHalfWidth()) && dy <= (paddle.getHalfHeight() + ball.radius)) {
-        // Check if the ball is moving towards the paddle
-        if (ball.velocity.y > 0 && ball.pos.y < paddle.getCenter().y ||
-            ball.velocity.y < 0 && ball.pos.y > paddle.getCenter().y) {
-            ball.velocity.y *= -1;
-            // Add some randomness to the bounce angle
-            ball.velocity.x += (Math.random() - 0.5) * 1.9; // Adjust the randomness factor as needed
-        }
-    }
-}
-
-
-function player2AI(ball, paddle) {
-    if (ball.velocity.y < 0) {
-        let targetX = ball.pos.x - paddle.width / 2;
-        let moveSpeed = paddle.velocity.x * levels[currentLevel].aiDifficulty;
-        
-        if (Math.abs(paddle.pos.x - targetX) > moveSpeed) {
-            if (paddle.pos.x < targetX) {
-                paddle.pos.x += moveSpeed;
-            } else {
-                paddle.pos.x -= moveSpeed;
+            if (dx <= (ball.radius + paddle.getHalfWidth()) && dy <= (paddle.getHalfHeight() + ball.radius)) {
+                if (ball.velocity.y > 0 && ball.pos.y < paddle.getCenter().y ||
+                    ball.velocity.y < 0 && ball.pos.y > paddle.getCenter().y) {
+                    ball.velocity.y *= -1;
+                    ball.velocity.x += (Math.random() - 0.5) * 1.9;
+                }
             }
         }
-        
-        paddle.pos.x = Math.max(0, Math.min(paddle.pos.x, canvas.width - paddle.width));
-    }
-}
 
-function respawnBall(ball) {
-    ball.pos.x = canvas.width / 2;
-    ball.pos.y = canvas.height / 2;
-    ball.velocity.x = 0;
-    ball.velocity.y = 0;
-    ball.trail = [];
-
-    let countdown = 1.5;
-    const countdownInterval = setInterval(() => {
-        if (countdown > 0) {
-            levelMessage.textContent = `Respawning in ${countdown.toFixed(1)}...`;
-            countdown -= 0.1;
-        } else {
-            clearInterval(countdownInterval);
-            levelMessage.textContent = `Level ${currentLevel + 1}`;
-            let speed = levels[currentLevel].ballSpeed;
-            // Respawn with random horizontal direction, but always moving
-            ball.velocity.x = (Math.random() > 0.5 ? 1 : -1) * speed;
-            ball.velocity.y = (Math.random() > 0.5 ? 1 : -1) * speed;
+        function player2AI(ball, paddle) {
+            if (ball.velocity.y < 0) {
+                let targetX = ball.pos.x - paddle.width / 2;
+                let moveSpeed = paddle.velocity.x * levels[currentLevel].aiDifficulty;
+                
+                if (Math.abs(paddle.pos.x - targetX) > moveSpeed) {
+                    if (paddle.pos.x < targetX) {
+                        paddle.pos.x += moveSpeed;
+                    } else {
+                        paddle.pos.x -= moveSpeed;
+                    }
+                }
+                
+                paddle.pos.x = Math.max(0, Math.min(paddle.pos.x, canvas.width - paddle.width));
+            }
         }
-    }, 100);
-}
 
+        function respawnBall(ball) {
+            ball.pos.x = canvas.width / 2;
+            ball.pos.y = canvas.height / 2;
+            ball.velocity.x = 0;
+            ball.velocity.y = 0;
+            ball.trail = [];
+
+            let countdown = 0.75;
+            const countdownInterval = setInterval(() => {
+                if (countdown > 0) {
+                    levelMessage.textContent = `Respawning in ${countdown.toFixed(1)}...`;
+                    countdown -= 0.1;
+                } else {
+                    clearInterval(countdownInterval);
+                    levelMessage.textContent = `Level ${currentLevel + 1}`;
+                    let speed = levels[currentLevel].ballSpeed;
+                    ball.velocity.x = (Math.random() > 0.5 ? 1 : -1) * speed;
+                    ball.velocity.y = (Math.random() > 0.5 ? 1 : -1) * speed;
+                }
+            }, 100);
+        }
+        
 function increaseScore(ball, paddle1, paddle2) {
-    if (ball.pos.y <= -ball.radius) {
+    if (ball.pos.y <= 0) {
         paddle1.score += 1;
-        document.getElementById('player1Score').innerHTML = paddle1.score;
-        if (paddle1.score === 3 || paddle2.score === 3) {
+        if (paddle1.score === 3) {
             levelUp();
         } else {
             respawnBall(ball);
         }
     }
 
-    if (ball.pos.y >= canvas.height + ball.radius) {
+    if (ball.pos.y >= canvas.height) {
         paddle2.score += 1;
-        document.getElementById('player2Score').innerHTML = paddle2.score;
-        if (paddle1.score === 3 || paddle2.score === 3) {
+        if (paddle2.score === 3) {
             levelUp();
         } else {
             respawnBall(ball);
         }
+    }
+
+    updateScoreStat();
+}
+
+
+// Update levelStat element with currentLevel + 1 (since levels are zero-indexed)
+function updateLevelStat() {
+    const levelStatElement = document.getElementById('levelStat');
+    levelStatElement.textContent = `Level: ${currentLevel + 1}`;
+}
+
+// Update aiDifficultyStat element with current AI difficulty
+function updateAIDifficultyStat() {
+    const aiDifficultyStatElement = document.getElementById('aiDifficultyStat');
+    aiDifficultyStatElement.textContent = `AI Difficulty: ${levels[currentLevel].aiDifficulty.toFixed(2)}`;
+}
+
+// Update goalBitsStat element with current goal bits earned
+function updateGoalBitsStat() {
+    const goalBitsStatElement = document.getElementById('goalBitsStat');
+    goalBitsStatElement.textContent = `GoalBits Earned: ${goalBitsEarned}`;
+}
+
+function updateScoreStat() {
+    const paddle1ScoreElement = document.getElementById("paddle1ScoreElement");
+    const paddle2ScoreElement = document.getElementById("paddle2ScoreElement");
+
+    if (paddle1ScoreElement && paddle2ScoreElement) {
+        paddle1ScoreElement.textContent = `Human: ${paddle1.score}`;
+        paddle2ScoreElement.textContent = `AI: ${paddle2.score}`;
     }
 }
 
-        function announceWinner(winner) {
-            alert(winner + ' wins!');
-            // Reset scores and level
-            paddle1.score = 0;
-            paddle2.score = 0;
-            currentLevel = 0; // Reset to the first level
-            document.getElementById('player1Score').innerHTML = 0;
-            document.getElementById('player2Score').innerHTML = 0;
-            // Reset the game state
-            gameRunning = false;
-            startButton.style.display = 'block';
-            drawInitialScene();
-        }
-        function DrawGameScene() {
-            ctx.lineWidth = 5;
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(canvas.width, 0);
-            ctx.lineTo(canvas.width, canvas.height);
-            ctx.lineTo(0, canvas.height);
-            ctx.lineTo(0, 0); // Close the path for the outer rectangle
-            ctx.moveTo(0, canvas.height / 2);
-            ctx.lineTo(canvas.width, canvas.height / 2);
-            ctx.arc(canvas.width / 2, canvas.height / 2, 50, 0, Math.PI * 2);
-            ctx.stroke();
-        }
-        
-        const levels = [
-            { ballSpeed: 6, paddleSpeed: 7, aiDifficulty: .5 },
-            { ballSpeed: 7, paddleSpeed: 7, aiDifficulty: .62 },
-            { ballSpeed: 7, paddleSpeed: 7, aiDifficulty: .75 },
-            { ballSpeed: 8, paddleSpeed: 7, aiDifficulty: .82 },
-            { ballSpeed: 8, paddleSpeed: 8, aiDifficulty: .85 }
-        ];
 
-        let currentLevel = 0;
+function updateStats() {
+    updateLevelStat();
+    updateAIDifficultyStat();
+    updateGoalBitsStat();
+    updateScoreStat();
+}
 
-async function levelUp() {
+let isTransitioning = false;
+
+function showLevelTransition(newLevel) {
+    gameRunning = false;
+    isTransitioning = true;
+
+    function handleClick() {
+        gameRunning = true;
+        isTransitioning = false;
+        respawnBall(ball);
+        canvas.removeEventListener('click', handleClick);
+    }
+
+    canvas.addEventListener('click', handleClick);
+}
+                
+function levelUp() {
     if (paddle1.score === 3) {
-        // Award 3 GoalBits for winning the level
-        await awardGoalBits(currentUserId, 3);
-        
+        goalBitsEarned += 3;
         currentLevel++;
+        
         if (currentLevel < levels.length) {
             const levelData = levels[currentLevel];
-            ball.velocity.x = (ball.velocity.x > 0 ? 1 : -1) * levelData.ballSpeed;
-            ball.velocity.y = (ball.velocity.y > 0 ? 1 : -1) * levelData.ballSpeed;
             paddle1.velocity.x = levelData.paddleSpeed;
             paddle2.velocity.x = levelData.paddleSpeed;
-            // Reset scores
             paddle1.score = 0;
             paddle2.score = 0;
-            document.getElementById('player1Score').innerHTML = 0;
-            document.getElementById('player2Score').innerHTML = 0;
-            levelMessage.textContent = `Level ${currentLevel + 1}`;
-            respawnBall(ball);
+            
+            updateStats();
+            updateScoreStat();
+            
+            showLevelTransition(currentLevel + 1);
         } else {
-            // Award NFT for completing all levels
-            await awardNFT(currentUserId);
-            announceWinner("Player 1");
+            announceWinner("Human!!");
         }
     } else if (paddle2.score === 3) {
         showUnluckyMessage();
@@ -382,59 +440,88 @@ async function levelUp() {
 
 
 
-function showUnluckyMessage() {
+
+function announceWinner(winner) {
+    alert(winner + ' wins!');
+    
+    // Reset scores
+    paddle1.score = 0;
+    paddle2.score = 0;
+    
+    // Update HTML elements with new scores
+    document.getElementById('paddle1ScoreElement').textContent = paddle1.score;
+    document.getElementById('paddle2ScoreElement').textContent = paddle2.score;
+    
+    // Update score display in UI
+    updateScoreStat();
+    
+    // Reset current level
+    currentLevel = 0;
+    
+    // Stop game
     gameRunning = false;
-    levelMessage.textContent = "No burrito for you!";
+    
+    // Display start button
     startButton.style.display = 'block';
-    startButton.textContent = 'Restart Game';
+    
+    // Redraw initial scene
+    drawInitialScene();
 }
 
-// scoring system from DB 
-async function awardGoalBits(userId, amount) {
-    try {
-        const response = await fetch('https://zaneegrey@github.io/FootballPong/index.html/award-goalbits', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ userId, amount }),
-        });
-        const data = await response.json();
-        if (data.success) {
-            console.log(`Awarded ${amount} GoalBits to user ${userId}`);
-        } else {
-            console.error('Failed to award GoalBits');
-        }
-    } catch (error) {
-        console.error('Error awarding GoalBits:', error);
-    }
-}
 
-async function awardNFT(userId) {
-    try {
-        const response = await fetch('https://zaneegrey@github.io/FootballPong/index.html/award-nft', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ userId }),
-        });
-        const data = await response.json();
-        if (data.success) {
-            console.log(`Awarded NFT to user ${userId}`);
-        } else {
-            console.error('Failed to award NFT');
-        }
-    } catch (error) {
-        console.error('Error awarding NFT:', error);
-    }
+function DrawGameScene() {
+    ctx.strokeStyle = "#ffff00"; // Luminous yellow color
+    ctx.lineWidth = 5;
+
+    // Draw the outer border
+    ctx.beginPath();
+    ctx.rect(0, 0, canvas.width, canvas.height);
+    ctx.stroke();
+
+    // Draw the center line
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height / 2);
+    ctx.lineTo(canvas.width, canvas.height / 2);
+    ctx.stroke();
+
+    // Draw the center circle
+    ctx.beginPath();
+    ctx.arc(canvas.width / 2, canvas.height / 2, 50, 0, Math.PI * 2);
+    ctx.stroke();
+
+    
 }
+        
+        const levels = [
+            { ballSpeed: 5, paddleSpeed: 7, aiDifficulty: 0.5 },
+            { ballSpeed: 5.5, paddleSpeed: 7, aiDifficulty: 0.55 },
+            { ballSpeed: 5.6, paddleSpeed: 7, aiDifficulty: 0.6 },
+            { ballSpeed: 5.7, paddleSpeed: 7, aiDifficulty: 0.65 },
+            { ballSpeed: 6.1, paddleSpeed: 7, aiDifficulty: 0.7 },
+            { ballSpeed: 6.2, paddleSpeed: 7.5, aiDifficulty: 0.75 },
+            { ballSpeed: 6.4, paddleSpeed: 7.5, aiDifficulty: 0.8 },
+            { ballSpeed: 6.5, paddleSpeed: 8, aiDifficulty: 0.85 },
+            { ballSpeed: 6.9, paddleSpeed: 8, aiDifficulty: 0.9 },
+            { ballSpeed: 7, paddleSpeed: 8.5, aiDifficulty: 0.95 }
+        ];
+
+        let currentLevel = 0;
+
+
+
+        function showUnluckyMessage() {
+            gameRunning = false;
+            levelMessage.textContent = "No burrito for you!";
+            startButton.style.display = 'block';
+            startButton.textContent = 'Try Again';
+        }
+
 
         const ball = new Ball(vec2(canvas.width / 2, canvas.height / 2), vec2(6, 6), 10);
-        const paddle1 = new Paddle(vec2(canvas.width / 2 - 50, canvas.height - 30), vec2(15, 0), 60, 20); // Bottom Paddle
-        const paddle2 = new Paddle(vec2(canvas.width / 2 - 50, 10), vec2(5, 0), 60, 20); // Top Paddle
+        const paddle1 = new Paddle(vec2(canvas.width / 2 - 50, canvas.height - 30), vec2(15, 0), 60, 20);
+        const paddle2 = new Paddle(vec2(canvas.width / 2 - 50, 10), vec2(5, 0), 60, 20);
 
-        let gameRunning = false; // Track the state of the game
+        let gameRunning = false;
 
         function runGame() {
             ball.update();
@@ -446,18 +533,17 @@ async function awardNFT(userId) {
             player2AI(ball, paddle2);
             increaseScore(ball, paddle1, paddle2);
             DrawGameScene();
+            updateStats()
             ball.draw();
             paddle1.draw();
             paddle2.draw();
         }
-
+        
         function drawInitialScene() {
-            // Clear the canvas
             ctx.fillStyle = "rgba(0,0,0,0.2)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = "white";
 
-            // Draw initial message
             ctx.fillStyle = "#ffffff";
             ctx.font = "30px Arial";
             ctx.textAlign = "center";
@@ -465,7 +551,25 @@ async function awardNFT(userId) {
             ctx.font = "20px Arial";
         }
 
-        // Start the game loop
+function drawTransitionScreen() {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = "#ffff00";
+    ctx.font = "bold 48px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(`Level ${currentLevel + 1}`, canvas.width / 2, canvas.height / 2 - 30);
+    
+    ctx.font = "24px Arial";
+    ctx.fillText("Get ready!", canvas.width / 2, canvas.height / 2 + 30);
+    
+    ctx.font = "18px Arial";
+    ctx.fillText("Click to continue...", canvas.width / 2, canvas.height / 2 + 80);
+}
+
+
+
+
 function gameLoop() {
     if (!gameLoop.isRunning) {
         gameLoop.isRunning = true;
@@ -473,38 +577,39 @@ function gameLoop() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (gameRunning) {
+    if (isTransitioning) {
+        drawTransitionScreen();
+    } else if (gameRunning) {
         runGame();
     }
 
     requestAnimationFrame(gameLoop);
 }
 
-        // Start game when button is clicked
-startButton.addEventListener('click', function() {
-    gameRunning = true;
-    startButton.style.display = 'none';
-    levelMessage.textContent = `Level ${currentLevel + 1}`;
-    
-    // Reset scores and level when restarting
-    paddle1.score = 0;
-    paddle2.score = 0;
-    currentLevel = 0;
-    document.getElementById('player1Score').innerHTML = 0;
-    document.getElementById('player2Score').innerHTML = 0;
-    
-    // Reset ball and paddle positions
-    respawnBall(ball);
-    paddle1.pos.x = canvas.width / 2 - paddle1.width / 2;
-    paddle2.pos.x = canvas.width / 2 - paddle2.width / 2;
-    
-    if (!gameLoop.isRunning) {
-        gameLoop();
-    }
-});
+        startButton.addEventListener('click', function() {
+            gameRunning = true;
+            startButton.style.display = 'none';
+            
+           
+            
+            paddle1.score = 0;
+            paddle2.score = 0;
+            currentLevel = 0;
+            goalBitsEarned = 0;
+            
+            
+            respawnBall(ball);
+            paddle1.pos.x = canvas.width / 2 - paddle1.width / 2;
+            paddle2.pos.x = canvas.width / 2 - paddle2.width / 2;
+            
+            if (!gameLoop.isRunning) {
+                gameLoop();
+            }
+        });
 
-    drawInitialScene(); // Draw initial scene before starting the game
+        drawInitialScene();
 
     </script>
 </body>
 </html>
+
