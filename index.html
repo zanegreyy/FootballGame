@@ -45,6 +45,7 @@
             border: none;
             border-radius: 5px;
         }
+
     #levelMessage {
         position: absolute;
         top: 100px;
@@ -435,6 +436,7 @@ function levelUp() {
         showUnluckyMessage();
         // To display scores
         
+        
 
     }
 }
@@ -508,12 +510,14 @@ function DrawGameScene() {
 
         function showUnluckyMessage() {
             gameRunning = false;
-            levelMessage.textContent = "No burrito for you!";
+            levelMessage.textContent = "Join Burrito Breakout Room!";
            
             startButton.style.display = 'block';
-            startButton.textContent = 'Try Again';
+            startButton.textContent = 'Login In';
+            startButton.onclick = function() {
+                window.location.href = 'page1.html';
+    };
         }
-
 
         const ball = new Ball(vec2(canvas.width / 2, canvas.height / 2), vec2(6, 6), 10);
         const paddle1 = new Paddle(vec2(canvas.width / 2 - 50, canvas.height - 30), vec2(15, 0), 60, 20);
@@ -559,7 +563,7 @@ function drawTransitionScreen() {
     ctx.fillText(`Level ${currentLevel + 1}`, canvas.width / 2, canvas.height / 2 - 30);
     
     ctx.font = "24px Arial";
-    ctx.fillText(`${goalBitsEarned} GoalBits earned!`, canvas.width / 2, canvas.height / 2 + 30);
+    ctx.fillText(`${goalBitsEarned} GoalBits Earned!`, canvas.width / 2, canvas.height / 2 + 30);
     
     ctx.font = "18px Arial";
     ctx.fillText("Click to continue...", canvas.width / 2, canvas.height / 2 + 80);
@@ -609,7 +613,6 @@ function gameLoop() {
 </script>
 
 <script type="module" src="src/firebase/firebase.js" ></script>
-
 </body>
 
 </html>
