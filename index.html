@@ -68,20 +68,20 @@
         }
 
     </style>
-  <script type="module" crossorigin src="/FootballGame/assets/index-269bc647.js"></script>
+  <script type="module" crossorigin src="/FootballGame/assets/index-19d182bd.js"></script>
 </head>
 <body>
     <canvas id="canvas"></canvas>
     <button id="startButton">Start Game!</button>
     <div id="levelMessage"></div>
     <div id="stats">
-            <p id="paddle1ScoreElement">Human:</p>
-            <p id="paddle2ScoreElement">AI:</p>
-            <p id="goalBitsStat">GoalBits Earned: 0</p>
-            <p id="levelStat">Level:</p>
-            <p id="aiDifficultyStat">AI Difficulty: 0.50</p>
+            <p id="paddle1ScoreElement"></p>
+            <p id="paddle2ScoreElement"></p>
+            <p id="goalBitsStat"></p>
+            <p id="levelStat"></p>
+            <p id="aiDifficultyStat"></p>
     </div>
-    
+
 <script> 
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -510,6 +510,7 @@ function DrawGameScene() {
         function showUnluckyMessage() {
             gameRunning = false;
             levelMessage.textContent = "No burrito for you!";
+           
             startButton.style.display = 'block';
             startButton.textContent = 'Try Again';
         }
@@ -531,7 +532,7 @@ function DrawGameScene() {
             player2AI(ball, paddle2);
             increaseScore(ball, paddle1, paddle2);
             DrawGameScene();
-            updateStats()
+            updateStats();
             ball.draw();
             paddle1.draw();
             paddle2.draw();
@@ -570,6 +571,7 @@ function gameLoop() {
         gameLoop.isRunning = true;
     }
 
+    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (isTransitioning) {
@@ -593,6 +595,7 @@ function gameLoop() {
             goalBitsEarned = 0;
             
             
+            
             respawnBall(ball);
             paddle1.pos.x = canvas.width / 2 - paddle1.width / 2;
             paddle2.pos.x = canvas.width / 2 - paddle2.width / 2;
@@ -605,6 +608,7 @@ function gameLoop() {
         drawInitialScene();
   
 </script>
+
 
 
 </body>
