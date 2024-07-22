@@ -67,7 +67,20 @@
         #stats p {
             margin: 5px 0;
         }
-
+        #pauseScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            display: none;
+        }
     </style>
   <script type="module" crossorigin src="/FootballGame/assets/index-19d182bd.js"></script>
 </head>
@@ -86,537 +99,631 @@
             <p id="aiDifficultyStat"></p>
     </div>
 
-<script> 
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const startButton = document.getElementById('startButton');
-        const levelMessage = document.getElementById('levelMessage');
-        const levelStat = document.getElementById('levelStat');
-        const aiDifficultyStat = document.getElementById('aiDifficultyStat');
-        const goalBitsStat = document.getElementById('goalBitsStat');
-        const paddle1ScoreElement = document.getElementById('paddle1ScoreElement');
-        const paddle2ScoreElement = document.getElementById('paddle2ScoreElement');
-        
-        
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight * 0.75;
-        
-        const keysPressed = [];
-        const KEY_LEFT = 37;
-        const KEY_RIGHT = 39;
-        let goalBitsEarned = 0;
+    <div id="pauseScreen">Game Paused - Click to Resume</div>
+    <button id="soundToggle">🔊</button>
 
-        let touchStartX = 0;
-        let isTouching = false;
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const startButton = document.getElementById('startButton');
+const levelMessage = document.getElementById('levelMessage');
+const levelStat = document.getElementById('levelStat');
+const aiDifficultyStat = document.getElementById('aiDifficultyStat');
+const goalBitsStat = document.getElementById('goalBitsStat');
+const paddle1ScoreElement = document.getElementById('paddle1ScoreElement');
+const paddle2ScoreElement = document.getElementById('paddle2ScoreElement');
 
-        canvas.addEventListener('touchstart', function (e) {
-            touchStartX = e.touches[0].clientX;
-            isTouching = true;
-        });
 
-        canvas.addEventListener('touchmove', function (e) {
-            e.preventDefault();
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight * 0.75;
 
-            if (isTouching) {
-                const touchX = e.touches[0].clientX;
-                const deltaX = touchX - touchStartX;
-                paddle1.pos.x += deltaX;
-                touchStartX = touchX;
-            }
-        });
+const keysPressed = [];
+const KEY_LEFT = 37;
+const KEY_RIGHT = 39;
+let goalBitsEarned = 0;
 
-        canvas.addEventListener('touchend', function () {
-            isTouching = false;
-        });
+let touchStartX = 0;
+let isTouching = false;
 
-        window.addEventListener('resize', function () {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight * 0.75;
-        });
+canvas.addEventListener('touchstart', function (e) {
+    touchStartX = e.touches[0].clientX;
+    isTouching = true;
+});
 
-        window.addEventListener('keydown', function(e) {
-            keysPressed[e.keyCode] = true;
-        });
+canvas.addEventListener('touchmove', function (e) {
+    e.preventDefault();
 
-        window.addEventListener('keyup', function(e) {
-            keysPressed[e.keyCode] = false;
-        });
+    if (isTouching) {
+        const touchX = e.touches[0].clientX;
+        const deltaX = touchX - touchStartX;
+        paddle1.pos.x += deltaX;
+        touchStartX = touchX;
+    }
+});
 
-        function vec2(x, y) {
-            return { x: x, y: y };
-        }
+canvas.addEventListener('touchend', function () {
+    isTouching = false;
+});
 
-        function Ball(pos, velocity, radius) {
-            this.pos = pos;
-            this.velocity = velocity;
-            this.radius = radius;
-            this.trail = [];
+window.addEventListener('resize', function () {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight * 0.75;
+});
 
-            this.update = function () {
-                this.pos.x += this.velocity.x;
-                this.pos.y += this.velocity.y;
+window.addEventListener('keydown', function(e) {
+    keysPressed[e.keyCode] = true;
+});
 
-                this.trail.push({ x: this.pos.x, y: this.pos.y });
-                if (this.trail.length > 20) {
-                    this.trail.shift();
-                }
-            };
+window.addEventListener('keyup', function(e) {
+    keysPressed[e.keyCode] = false;
+});
 
-            this.draw = function () {
-                ctx.fillStyle = "white";
-                ctx.strokeStyle = "white";
-                ctx.beginPath();
-                ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
+function vec2(x, y) {
+    return { x: x, y: y };
+}
 
-                ctx.lineWidth = 12;
-                for (let i = 0; i < this.trail.length - 1; i++) {
-                    let alpha = 1 - i / this.trail.length;
-                    let hue = (i * 10) % 60;
-                    
-                    let gradient = ctx.createLinearGradient(
-                        this.trail[i].x, this.trail[i].y,
-                        this.trail[i + 1].x, this.trail[i + 1].y
-                    );
-                    gradient.addColorStop(0, `hsla(${hue}, 100%, 50%, ${alpha})`);
-                    gradient.addColorStop(1, `hsla(${hue + 30}, 100%, 50%, ${alpha * 0.5})`);
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+const soundEffects = {};
 
-                    ctx.beginPath();
-                    ctx.strokeStyle = gradient;
-                    ctx.moveTo(this.trail[i].x, this.trail[i].y);
-                    ctx.lineTo(this.trail[i + 1].x, this.trail[i + 1].y);
-                    ctx.stroke();
+function loadSound(name, url) {
+    fetch(url)
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+        .then(audioBuffer => {
+            soundEffects[name] = audioBuffer;
+        })
+        .catch(error => console.error('Error loading sound:', error));
+}
 
-                    if (i % 3 === 0) {
-                        let angle = Math.atan2(this.trail[i + 1].y - this.trail[i].y, this.trail[i + 1].x - this.trail[i].x);
-                        let particleSize = 2 * alpha;
-                        ctx.fillStyle = `hsla(${hue}, 100%, 50%, ${alpha * 0.7})`;
-                        ctx.beginPath();
-                        ctx.arc(
-                            this.trail[i].x + Math.cos(angle + Math.PI / 2) * (Math.random() * 5),
-                            this.trail[i].y + Math.sin(angle + Math.PI / 2) * (Math.random() * 5),
-                            particleSize, 0, Math.PI * 2
-                        );
-                        ctx.fill();
-                    }
-                }
-            };
-        }
+// Load your sound effects
+loadSound('paddleHit', './FootballGame/sounds/paddle-hit.mp3');
+loadSound('score', './FootballGame/sounds/goal.mp3');
+loadSound('victory', './FootballGame/sounds/yay.mp3');
+loadSound('gameOver', './FootballGame/sounds/game-over.mp3');
+// Add more sound effects as needed
 
-// Paddle Functions
-function Paddle(pos, velocity, width, height) {
+function playSound(name) {
+    if (soundEffects[name]) {
+        const source = audioContext.createBufferSource();
+        source.buffer = soundEffects[name];
+        source.connect(audioContext.destination);
+        source.start();
+    }
+}
+
+let soundEnabled = true;
+const soundToggle = document.getElementById('soundToggle');
+
+soundToggle.addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
+});
+
+// Modify the playSound function
+function playSound(name) {
+    if (soundEnabled && soundEffects[name]) {
+        const source = audioContext.createBufferSource();
+        source.buffer = soundEffects[name];
+        source.connect(audioContext.destination);
+        source.start();
+    }
+}
+
+document.addEventListener('click', () => {
+    if (audioContext.state === 'suspended') {
+        audioContext.resume();
+    }
+}, { once: true });
+
+
+function Ball(pos, velocity, radius) {
     this.pos = pos;
     this.velocity = velocity;
-    this.width = width;
-    this.height = height;
-    this.score = 0;
+    this.radius = radius;
+    this.trail = [];
 
     this.update = function () {
-        if (keysPressed[KEY_LEFT]) {
-            this.pos.x -= this.velocity.x;
-        }
-        if (keysPressed[KEY_RIGHT]) {
-            this.pos.x += this.velocity.x;
+        this.pos.x += this.velocity.x;
+        this.pos.y += this.velocity.y;
+
+        this.trail.push({ x: this.pos.x, y: this.pos.y });
+        if (this.trail.length > 20) {
+            this.trail.shift();
         }
     };
 
     this.draw = function () {
-        // Create gradient
-        let gradient = ctx.createLinearGradient(this.pos.x, this.pos.y, this.pos.x, this.pos.y + this.height);
-        gradient.addColorStop(0, "#33ff00");
-        gradient.addColorStop(1, "#009900");
-
-        // Fill with gradient
-        ctx.fillStyle = gradient;
-
-        // Rounded corners
-        let cornerRadius = 10;
+        ctx.fillStyle = "white";
+        ctx.strokeStyle = "white";
         ctx.beginPath();
-        ctx.moveTo(this.pos.x + cornerRadius, this.pos.y);
-        ctx.lineTo(this.pos.x + this.width - cornerRadius, this.pos.y);
-        ctx.quadraticCurveTo(this.pos.x + this.width, this.pos.y, this.pos.x + this.width, this.pos.y + cornerRadius);
-        ctx.lineTo(this.pos.x + this.width, this.pos.y + this.height - cornerRadius);
-        ctx.quadraticCurveTo(this.pos.x + this.width, this.pos.y + this.height, this.pos.x + this.width - cornerRadius, this.pos.y + this.height);
-        ctx.lineTo(this.pos.x + cornerRadius, this.pos.y + this.height);
-        ctx.quadraticCurveTo(this.pos.x, this.pos.y + this.height, this.pos.x, this.pos.y + this.height - cornerRadius);
-        ctx.lineTo(this.pos.x, this.pos.y + cornerRadius);
-        ctx.quadraticCurveTo(this.pos.x, this.pos.y, this.pos.x + cornerRadius, this.pos.y);
-        ctx.closePath();
+        ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
         ctx.fill();
-
-        // Border
-        ctx.lineWidth = 5;
-        ctx.strokeStyle = "#006600";
         ctx.stroke();
 
-        // Shadow
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        ctx.shadowBlur = 15;
-        ctx.shadowOffsetX = 5;
-        ctx.shadowOffsetY = 5;
+        ctx.lineWidth = 12;
+        for (let i = 0; i < this.trail.length - 1; i++) {
+            let alpha = 1 - i / this.trail.length;
+            let hue = (i * 10) % 60;
+            
+            let gradient = ctx.createLinearGradient(
+                this.trail[i].x, this.trail[i].y,
+                this.trail[i + 1].x, this.trail[i + 1].y
+            );
+            gradient.addColorStop(0, `hsla(${hue}, 100%, 50%, ${alpha})`);
+            gradient.addColorStop(1, `hsla(${hue + 30}, 100%, 50%, ${alpha * 0.5})`);
 
-        // Restore default shadow settings
-        ctx.shadowColor = 'transparent';
-    };
+            ctx.beginPath();
+            ctx.strokeStyle = gradient;
+            ctx.moveTo(this.trail[i].x, this.trail[i].y);
+            ctx.lineTo(this.trail[i + 1].x, this.trail[i + 1].y);
+            ctx.stroke();
 
-    this.getHalfWidth = function() {
-        return this.width / 2;
-    };
-
-    this.getHalfHeight = function() {
-        return this.height / 2;
-    };
-
-    this.getCenter = function() {
-        return vec2(
-            this.pos.x + this.getHalfWidth(),
-            this.pos.y + this.getHalfHeight()
-        );
+            if (i % 3 === 0) {
+                let angle = Math.atan2(this.trail[i + 1].y - this.trail[i].y, this.trail[i + 1].x - this.trail[i].x);
+                let particleSize = 2 * alpha;
+                ctx.fillStyle = `hsla(${hue}, 100%, 50%, ${alpha * 0.7})`;
+                ctx.beginPath();
+                ctx.arc(
+                    this.trail[i].x + Math.cos(angle + Math.PI / 2) * (Math.random() * 5),
+                    this.trail[i].y + Math.sin(angle + Math.PI / 2) * (Math.random() * 5),
+                    particleSize, 0, Math.PI * 2
+                );
+                ctx.fill();
+            }
+        }
     };
 }
 
+// Paddle Functions
+function Paddle(pos, velocity, width, height) {
+this.pos = pos;
+this.velocity = velocity;
+this.width = width;
+this.height = height;
+this.score = 0;
 
-        function paddleCollisionWithTheEdges(paddle) {
-            paddle.pos.x = Math.max(0, Math.min(paddle.pos.x, canvas.width - paddle.width));
+this.update = function () {
+if (keysPressed[KEY_LEFT]) {
+    this.pos.x -= this.velocity.x;
+}
+if (keysPressed[KEY_RIGHT]) {
+    this.pos.x += this.velocity.x;
+}
+};
+
+this.draw = function () {
+// Create gradient
+let gradient = ctx.createLinearGradient(this.pos.x, this.pos.y, this.pos.x, this.pos.y + this.height);
+gradient.addColorStop(0, "#33ff00");
+gradient.addColorStop(1, "#009900");
+
+// Fill with gradient
+ctx.fillStyle = gradient;
+
+// Rounded corners
+let cornerRadius = 10;
+ctx.beginPath();
+ctx.moveTo(this.pos.x + cornerRadius, this.pos.y);
+ctx.lineTo(this.pos.x + this.width - cornerRadius, this.pos.y);
+ctx.quadraticCurveTo(this.pos.x + this.width, this.pos.y, this.pos.x + this.width, this.pos.y + cornerRadius);
+ctx.lineTo(this.pos.x + this.width, this.pos.y + this.height - cornerRadius);
+ctx.quadraticCurveTo(this.pos.x + this.width, this.pos.y + this.height, this.pos.x + this.width - cornerRadius, this.pos.y + this.height);
+ctx.lineTo(this.pos.x + cornerRadius, this.pos.y + this.height);
+ctx.quadraticCurveTo(this.pos.x, this.pos.y + this.height, this.pos.x, this.pos.y + this.height - cornerRadius);
+ctx.lineTo(this.pos.x, this.pos.y + cornerRadius);
+ctx.quadraticCurveTo(this.pos.x, this.pos.y, this.pos.x + cornerRadius, this.pos.y);
+ctx.closePath();
+ctx.fill();
+
+// Border
+ctx.lineWidth = 5;
+ctx.strokeStyle = "#006600";
+ctx.stroke();
+
+// Shadow
+ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+ctx.shadowBlur = 15;
+ctx.shadowOffsetX = 5;
+ctx.shadowOffsetY = 5;
+
+// Restore default shadow settings
+ctx.shadowColor = 'transparent';
+};
+
+this.getHalfWidth = function() {
+return this.width / 2;
+};
+
+this.getHalfHeight = function() {
+return this.height / 2;
+};
+
+this.getCenter = function() {
+return vec2(
+    this.pos.x + this.getHalfWidth(),
+    this.pos.y + this.getHalfHeight()
+);
+};
+}
+
+
+function paddleCollisionWithTheEdges(paddle) {
+    paddle.pos.x = Math.max(0, Math.min(paddle.pos.x, canvas.width - paddle.width));
+}
+
+function ballCollisionWithTheEdges(ball) {
+    if (ball.pos.x + ball.radius >= canvas.width || ball.pos.x - ball.radius <= 0) {
+        ball.velocity.x *= -1;
+    }
+}
+
+function ballPaddleCollision(ball, paddle) {
+    let dx = Math.abs(ball.pos.x - paddle.getCenter().x);
+    let dy = Math.abs(ball.pos.y - paddle.getCenter().y);
+
+    if (dx <= (ball.radius + paddle.getHalfWidth()) && dy <= (paddle.getHalfHeight() + ball.radius)) {
+        if (ball.velocity.y > 0 && ball.pos.y < paddle.getCenter().y ||
+            ball.velocity.y < 0 && ball.pos.y > paddle.getCenter().y) {
+            ball.velocity.y *= -1;
+            ball.velocity.x += (Math.random() - 0.5) * 1.9;
+            playSound('paddleHit');
         }
+    }
+}
 
-        function ballCollisionWithTheEdges(ball) {
-            if (ball.pos.x + ball.radius >= canvas.width) {
-                ball.velocity.x *= -1;
+function player2AI(ball, paddle) {
+    if (ball.velocity.y < 0) {
+        let targetX = ball.pos.x - paddle.width / 2;
+        let moveSpeed = paddle.velocity.x * levels[currentLevel].aiDifficulty;
+        
+        if (Math.abs(paddle.pos.x - targetX) > moveSpeed) {
+            if (paddle.pos.x < targetX) {
+                paddle.pos.x += moveSpeed;
+            } else {
+                paddle.pos.x -= moveSpeed;
             }
-            if (ball.pos.x - ball.radius <= 0) {
-                ball.velocity.x *= -1;
-            }
-        }
-
-        function ballPaddleCollision(ball, paddle) {
-            let dx = Math.abs(ball.pos.x - paddle.getCenter().x);
-            let dy = Math.abs(ball.pos.y - paddle.getCenter().y);
-
-            if (dx <= (ball.radius + paddle.getHalfWidth()) && dy <= (paddle.getHalfHeight() + ball.radius)) {
-                if (ball.velocity.y > 0 && ball.pos.y < paddle.getCenter().y ||
-                    ball.velocity.y < 0 && ball.pos.y > paddle.getCenter().y) {
-                    ball.velocity.y *= -1;
-                    ball.velocity.x += (Math.random() - 0.5) * 1.9;
-                }
-            }
-        }
-
-        function player2AI(ball, paddle) {
-            if (ball.velocity.y < 0) {
-                let targetX = ball.pos.x - paddle.width / 2;
-                let moveSpeed = paddle.velocity.x * levels[currentLevel].aiDifficulty;
-                
-                if (Math.abs(paddle.pos.x - targetX) > moveSpeed) {
-                    if (paddle.pos.x < targetX) {
-                        paddle.pos.x += moveSpeed;
-                    } else {
-                        paddle.pos.x -= moveSpeed;
-                    }
-                }
-                
-                paddle.pos.x = Math.max(0, Math.min(paddle.pos.x, canvas.width - paddle.width));
-            }
-        }
-
-        function respawnBall(ball) {
-            ball.pos.x = canvas.width / 2;
-            ball.pos.y = canvas.height / 2;
-            ball.velocity.x = 0;
-            ball.velocity.y = 0;
-            ball.trail = [];
-
-            let countdown = 0.75;
-            const countdownInterval = setInterval(() => {
-                if (countdown > 0) {
-                    levelMessage.textContent = `Respawning in ${countdown.toFixed(1)}...`;
-                    countdown -= 0.1;
-                } else {
-                    clearInterval(countdownInterval);
-                    levelMessage.textContent = `Level ${currentLevel + 1}`;
-                    let speed = levels[currentLevel].ballSpeed;
-                    ball.velocity.x = (Math.random() > 0.5 ? 1 : -1) * speed;
-                    ball.velocity.y = (Math.random() > 0.5 ? 1 : -1) * speed;
-                }
-            }, 100);
         }
         
+        paddle.pos.x = Math.max(0, Math.min(paddle.pos.x, canvas.width - paddle.width));
+    }
+}
+
+function respawnBall(ball) {
+    ball.pos.x = canvas.width / 2;
+    ball.pos.y = canvas.height / 2;
+    ball.velocity.x = 0;
+    ball.velocity.y = 0;
+    ball.trail = [];
+
+    let countdown = 0.75;
+    const countdownInterval = setInterval(() => {
+        if (countdown > 0) {
+            levelMessage.textContent = `Respawning in ${countdown.toFixed(1)}...`;
+            countdown -= 0.1;
+        } else {
+            clearInterval(countdownInterval);
+            levelMessage.textContent = `Level ${currentLevel + 1}`;
+            let speed = levels[currentLevel].ballSpeed;
+            ball.velocity.x = (Math.random() > 0.5 ? 1 : -1) * speed;
+            ball.velocity.y = (Math.random() > 0.5 ? 1 : -1) * speed;
+        }
+    }, 100);
+}
+
 function increaseScore(ball, paddle1, paddle2) {
-    if (ball.pos.y <= 0) {
-        paddle1.score += 1;
-        if (paddle1.score === 3) {
-            levelUp();
-        } else {
-            respawnBall(ball);
-        }
-    }
+if (ball.pos.y <= 0) {
+paddle1.score += 1;
+playSound('score');
+if (paddle1.score === 3) {
+    levelUp();
+} else {
+    respawnBall(ball);
+}
+}
 
-    if (ball.pos.y >= canvas.height) {
-        paddle2.score += 1;
-        if (paddle2.score === 3) {
-            levelUp();
-        } else {
-            respawnBall(ball);
-        }
-    }
+if (ball.pos.y >= canvas.height) {
+paddle2.score += 1;
+if (paddle2.score === 3) {
+    levelUp();
+} else {
+    respawnBall(ball);
+}
+}
 
-    updateScoreStat();
+updateScoreStat();
 }
 
 // Update levelStat element with currentLevel + 1 (since levels are zero-indexed)
 function updateLevelStat() {
-    const levelStatElement = document.getElementById('levelStat');
-    levelStatElement.textContent = `Level: ${currentLevel + 1}`;
+const levelStatElement = document.getElementById('levelStat');
+levelStatElement.textContent = `Level: ${currentLevel + 1}`;
 }
 
 // Update aiDifficultyStat element with current AI difficulty
 function updateAIDifficultyStat() {
-    const aiDifficultyStatElement = document.getElementById('aiDifficultyStat');
-    aiDifficultyStatElement.textContent = `AI Difficulty: ${levels[currentLevel].aiDifficulty.toFixed(2)}`;
+const aiDifficultyStatElement = document.getElementById('aiDifficultyStat');
+aiDifficultyStatElement.textContent = `AI Difficulty: ${levels[currentLevel].aiDifficulty.toFixed(2)}`;
 }
 
 // Update goalBitsStat element with current goal bits earned
 function updateGoalBitsStat() {
-    const goalBitsStatElement = document.getElementById('goalBitsStat');
-    goalBitsStatElement.textContent = `GoalBits Earned: ${goalBitsEarned}`;
+const goalBitsStatElement = document.getElementById('goalBitsStat');
+goalBitsStatElement.textContent = `GoalBits Earned: ${goalBitsEarned}`;
 }
 
 function updateScoreStat() {
-    const paddle1ScoreElement = document.getElementById("paddle1ScoreElement");
-    const paddle2ScoreElement = document.getElementById("paddle2ScoreElement");
+const paddle1ScoreElement = document.getElementById("paddle1ScoreElement");
+const paddle2ScoreElement = document.getElementById("paddle2ScoreElement");
 
-    if (paddle1ScoreElement && paddle2ScoreElement) {
-        paddle1ScoreElement.textContent = `Human: ${paddle1.score}`;
-        paddle2ScoreElement.textContent = `AI: ${paddle2.score}`;
-    }
+if (paddle1ScoreElement && paddle2ScoreElement) {
+paddle1ScoreElement.textContent = `Human: ${paddle1.score}`;
+paddle2ScoreElement.textContent = `AI: ${paddle2.score}`;
+}
 }
 
 
 function updateStats() {
-    updateLevelStat();
-    updateAIDifficultyStat();
-    updateGoalBitsStat();
-    updateScoreStat();
+updateLevelStat();
+updateAIDifficultyStat();
+updateGoalBitsStat();
+updateScoreStat();
 }
 
 let isTransitioning = false;
 
 function showLevelTransition(newLevel) {
-    gameRunning = false;
-    isTransitioning = true;
+gameRunning = false;
+isTransitioning = true;
 
-    function handleClick() {
-        gameRunning = true;
-        isTransitioning = false;
-        respawnBall(ball);
-        canvas.removeEventListener('click', handleClick);
-    }
-
-    canvas.addEventListener('click', handleClick);
+function handleClick() {
+gameRunning = true;
+isTransitioning = false;
+respawnBall(ball);
+canvas.removeEventListener('click', handleClick);
 }
-                
+
+canvas.addEventListener('click', handleClick);
+}
+        
 function levelUp() {
-    if (paddle1.score === 3) {
-        goalBitsEarned += 3;
-        currentLevel++;
-        
-        if (currentLevel < levels.length) {
-            const levelData = levels[currentLevel];
-            paddle1.velocity.x = levelData.paddleSpeed;
-            paddle2.velocity.x = levelData.paddleSpeed;
-            paddle1.score = 0;
-            paddle2.score = 0;
-            
-            updateStats();
-            
-            
-            
-            showLevelTransition(currentLevel + 1);
-        } else {
-            announceWinner("Human!!");
-        }
-    } else if (paddle2.score === 3) {
-        showUnluckyMessage();
-        // To display scores
-        
-        
+if (paddle1.score === 3) {
+goalBitsEarned += 3;
+currentLevel++;
 
-    }
-}
-
-function announceWinner(winner) {
-    alert(winner + ' wins!');
-    
-    // Reset scores
+if (currentLevel < levels.length) {
+    const levelData = levels[currentLevel];
+    paddle1.velocity.x = levelData.paddleSpeed;
+    paddle2.velocity.x = levelData.paddleSpeed;
     paddle1.score = 0;
     paddle2.score = 0;
     
+    updateStats();
+    
+    
+    
+    showLevelTransition(currentLevel + 1);
+} else {
+    announceWinner("Human!!");
+}
+} else if (paddle2.score === 3) {
+showUnluckyMessage();
+
+
+
+
+}
+}
+
+function announceWinner(winner) {
+    if (winner === "Human!!") {
+        playSound('victory'); // Play the victory sound for the human player
+    } else {
+        playSound('gameOver'); // Play game over sound if AI wins
+    }
+    
+    alert(winner + ' wins!');
+
+    // Reset scores
+    paddle1.score = 0;
+    paddle2.score = 0;
+
     // Update HTML elements with new scores
     document.getElementById('paddle1ScoreElement').textContent = paddle1.score;
     document.getElementById('paddle2ScoreElement').textContent = paddle2.score;
-    
+
     // Update score display in UI
     updateScoreStat();
-    
+
     // Reset current levels
     currentLevel = 0;
-    
+
     // Stop game
     gameRunning = false;
-    
+
     // Display start button
     startButton.style.display = 'block';
-    
+
     // Redraw initial scene
     drawInitialScene();
 }
 
 
 function DrawGameScene() {
-    ctx.strokeStyle = "#ffff00"; // Luminous yellow color
-    ctx.lineWidth = 5;
+ctx.strokeStyle = "#ffff00"; // Luminous yellow color
+ctx.lineWidth = 5;
 
-    // Draw the outer border
-    ctx.beginPath();
-    ctx.rect(0, 0, canvas.width, canvas.height);
-    ctx.stroke();
+// Draw the outer border
+ctx.beginPath();
+ctx.rect(0, 0, canvas.width, canvas.height);
+ctx.stroke();
 
-    // Draw the center line
-    ctx.beginPath();
-    ctx.moveTo(0, canvas.height / 2);
-    ctx.lineTo(canvas.width, canvas.height / 2);
-    ctx.stroke();
+// Draw the center line
+ctx.beginPath();
+ctx.moveTo(0, canvas.height / 2);
+ctx.lineTo(canvas.width, canvas.height / 2);
+ctx.stroke();
 
-    // Draw the center circle
-    ctx.beginPath();
-    ctx.arc(canvas.width / 2, canvas.height / 2, 50, 0, Math.PI * 2);
-    ctx.stroke();
+// Draw the center circle
+ctx.beginPath();
+ctx.arc(canvas.width / 2, canvas.height / 2, 50, 0, Math.PI * 2);
+ctx.stroke();
 
-    
 }
-        
-        const levels = [
-            { ballSpeed: 5, paddleSpeed: 6, aiDifficulty: 0.5 },
-            { ballSpeed: 5.5, paddleSpeed: 6, aiDifficulty: 0.55 },
-            { ballSpeed: 5.6, paddleSpeed: 6, aiDifficulty: 0.6 },
-            { ballSpeed: 5.7, paddleSpeed: 6, aiDifficulty: 0.65 },
-            { ballSpeed: 6.1, paddleSpeed: 6, aiDifficulty: 0.7 },
-            { ballSpeed: 6.2, paddleSpeed: 6.5, aiDifficulty: 0.75 },
-            { ballSpeed: 6.4, paddleSpeed: 6.5, aiDifficulty: 0.8 },
-            { ballSpeed: 6.5, paddleSpeed: 7, aiDifficulty: 0.85 },
-            { ballSpeed: 6.9, paddleSpeed: 7, aiDifficulty: 0.9 },
-            { ballSpeed: 7, paddleSpeed: 7, aiDifficulty: 0.95 }
-        ];
 
-        let currentLevel = 0;
+const levels = [
+    { ballSpeed: 5, paddleSpeed: 6, aiDifficulty: 0.5 },
+    { ballSpeed: 5.5, paddleSpeed: 6, aiDifficulty: 0.55 },
+    { ballSpeed: 5.6, paddleSpeed: 6, aiDifficulty: 0.6 },
+    { ballSpeed: 5.7, paddleSpeed: 6, aiDifficulty: 0.65 },
+    { ballSpeed: 6.1, paddleSpeed: 6, aiDifficulty: 0.7 },
+    { ballSpeed: 6.2, paddleSpeed: 6.5, aiDifficulty: 0.75 },
+    { ballSpeed: 6.4, paddleSpeed: 6.5, aiDifficulty: 0.8 },
+    { ballSpeed: 6.5, paddleSpeed: 7, aiDifficulty: 0.85 },
+    { ballSpeed: 6.9, paddleSpeed: 7, aiDifficulty: 0.9 },
+    { ballSpeed: 7, paddleSpeed: 7, aiDifficulty: 0.95 }
+];
 
+let currentLevel = 0;
 
-        function showUnluckyMessage() {
-            gameRunning = false;
-            levelMessage.textContent = "Join Burrito Breakout Room!";
-           
-            startButton.style.display = 'block';
-            startButton.textContent = 'Login In';
-            startButton.onclick = function() {
-                window.location.href = 'page1.html';
+function showUnluckyMessage() {
+    gameRunning = false;
+    levelMessage.textContent = "Try again";
+    
+    playSound('gameOver'); // Play game over sound
+   
+    startButton.style.display = 'block';
+    startButton.textContent = 'Start Game!';
+    startButton.onclick = function() {
+        runGame();
     };
-        }
+}
 
-        const ball = new Ball(vec2(canvas.width / 2, canvas.height / 2), vec2(6, 6), 10);
-        const paddle1 = new Paddle(vec2(canvas.width / 2 - 50, canvas.height - 30), vec2(15, 0), 60, 20);
-        const paddle2 = new Paddle(vec2(canvas.width / 2 - 50, 10), vec2(5, 0), 60, 20);
+let isPaused = false;
+let animationId;
 
-        let gameRunning = false;
+function togglePause() {
+    isPaused = !isPaused;
+    if (isPaused) {
+        // Pause game logic
+        cancelAnimationFrame(animationId);
+        document.getElementById('pauseScreen').style.display = 'flex';
+    } else {
+        // Resume game logic
+        document.getElementById('pauseScreen').style.display = 'none';
+        gameLoop();
+    }
+}
 
-        function runGame() {
-            ball.update();
-            paddle1.update();
-            paddleCollisionWithTheEdges(paddle1);
-            ballCollisionWithTheEdges(ball);
-            ballPaddleCollision(ball, paddle1);
-            ballPaddleCollision(ball, paddle2);
-            player2AI(ball, paddle2);
-            increaseScore(ball, paddle1, paddle2);
-            DrawGameScene();
-            updateStats();
-            ball.draw();
-            paddle1.draw();
-            paddle2.draw();
-        }
-        
-        function drawInitialScene() {
-            ctx.fillStyle = "rgba(0,0,0,0.2)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "white";
+const ball = new Ball(vec2(canvas.width / 2, canvas.height / 2), vec2(6, 6), 10);
+const paddle1 = new Paddle(vec2(canvas.width / 2 - 50, canvas.height - 30), vec2(15, 0), 60, 20);
+const paddle2 = new Paddle(vec2(canvas.width / 2 - 50, 10), vec2(5, 0), 60, 20);
 
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "30px Arial";
-            ctx.textAlign = "center";
-            ctx.fillText("First to 3 wins a Burrito!", canvas.width / 2, canvas.height / 3);
-            ctx.font = "20px Arial";
-        }
+let gameRunning = false;
+
+function runGame() {
+    ball.update();
+    paddle1.update();
+    paddleCollisionWithTheEdges(paddle1);
+    ballCollisionWithTheEdges(ball);
+    ballPaddleCollision(ball, paddle1);
+    ballPaddleCollision(ball, paddle2);
+    player2AI(ball, paddle2);
+    increaseScore(ball, paddle1, paddle2);
+    DrawGameScene();
+    updateStats();
+    ball.draw();
+    paddle1.draw();
+    paddle2.draw();
+}
+
+function drawInitialScene() {
+    ctx.fillStyle = "rgba(0,0,0,0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "white";
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "30px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("first to 3 wins ", canvas.width / 2, canvas.height / 3);
+    ctx.font = "20px Arial";
+}
 
 function drawTransitionScreen() {
-    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.fillStyle = "#ffff00";
-    ctx.font = "bold 48px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(`Level ${currentLevel + 1}`, canvas.width / 2, canvas.height / 2 - 30);
-    
-    ctx.font = "24px Arial";
-    ctx.fillText(`${goalBitsEarned} GoalBits Earned!`, canvas.width / 2, canvas.height / 2 + 30);
-    
-    ctx.font = "18px Arial";
-    ctx.fillText("Click to continue...", canvas.width / 2, canvas.height / 2 + 80);
-}
+ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+ctx.fillStyle = "#ffff00";
+ctx.font = "bold 48px Arial";
+ctx.textAlign = "center";
+ctx.fillText(`Level ${currentLevel + 1}`, canvas.width / 2, canvas.height / 2 - 30);
+
+ctx.font = "24px Arial";
+ctx.fillText(`${goalBitsEarned} GoalBits Earned!`, canvas.width / 2, canvas.height / 2 + 30);
+
+ctx.font = "18px Arial";
+ctx.fillText("Click to continue...", canvas.width / 2, canvas.height / 2 + 80);
+}
 function gameLoop() {
     if (!gameLoop.isRunning) {
         gameLoop.isRunning = true;
     }
 
-    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (isTransitioning) {
         drawTransitionScreen();
-    } else if (gameRunning) {
+    } else if (gameRunning && !isPaused) {
         runGame();
     }
 
-    requestAnimationFrame(gameLoop);
+    if (!isPaused) {
+        animationId = requestAnimationFrame(gameLoop);
+    }
 }
 
-        startButton.addEventListener('click', function() {
-            gameRunning = true;
-            startButton.style.display = 'none';
-            
-           
-            
-            paddle1.score = 0;
-            paddle2.score = 0;
-            currentLevel = 0;
-            goalBitsEarned = 0;
-            
-            
-            
-            respawnBall(ball);
-            paddle1.pos.x = canvas.width / 2 - paddle1.width / 2;
-            paddle2.pos.x = canvas.width / 2 - paddle2.width / 2;
-            
-            if (!gameLoop.isRunning) {
-                gameLoop();
-            }
-        });
 
-        drawInitialScene();
-  
+canvas.addEventListener('click', function(e) {
+    if (gameRunning && !isPaused && !isTransitioning) {
+        togglePause();
+    }
+});
+
+document.getElementById('pauseScreen').addEventListener('click', function(e) {
+    if (isPaused) {
+        togglePause();
+    }
+    e.stopPropagation(); // Prevent the click from triggering the canvas click event
+});
+
+
+startButton.addEventListener('click', function() {
+    gameRunning = true;
+    startButton.style.display = 'none';
+    
+    paddle1.score = 0;
+    paddle2.score = 0;
+    currentLevel = 0;
+    goalBitsEarned = 0;
+    
+    respawnBall(ball);
+    paddle1.pos.x = canvas.width / 2 - paddle1.width / 2;
+    paddle2.pos.x = canvas.width / 2 - paddle2.width / 2;
+    
+    isPaused = false;
+    document.getElementById('pauseScreen').style.display = 'none';
+    
+    if (!gameLoop.isRunning) {
+        gameLoop();
+    }
+});
+
+drawInitialScene();
+
 </script>
 
 
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 </body>
 
 </html>
