@@ -17,7 +17,7 @@ const logger = require('firebase-functions/logger');
 //   logger.info("Hello logs!", {structuredData: true});
 //   response.send("Hello from Firebase!");
 // });
-
+require('dotenv').config
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
@@ -36,7 +36,7 @@ exports.telegramAuth = functions.https.onRequest(async (req, res) => {
         hash: user.hash,
     };
 
-    const token = 'YOUR_BOT_TOKEN';
+    const token = require('TELEGRAM_BOT_TOKEN');
     const secret = crypto.createHmac('sha256', token).update(Buffer.from([
         telegramData.id,
         telegramData.first_name,
