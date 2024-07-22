@@ -68,4 +68,4 @@ async function onTelegramAuth(user) {
 // Make sure the function is globally accessible
 window.onTelegramAuth = onTelegramAuth;
 
-export { db };
+export { db, doc, setDoc };
