@@ -1,9 +1,11 @@
+require('dotenv').config();
+
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDueT8tDjIOnPbHozo5Ea5BUUrJdcVbmbs",
+  apiKey: process.env.APP_GOOGLE_API_KEY,
   authDomain: "footballpongdb.firebaseapp.com",
   projectId: "footballpongdb",
   storageBucket: "footballpongdb.appspot.com",
