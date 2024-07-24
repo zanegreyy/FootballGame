@@ -3,6 +3,85 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Burrito Room</title>
+    <style>
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f0f0f0;
+}
+
+h1 {
+  color: #00698f;
+  text-align: center;
+}
+
+h2 {
+  color: #008000;
+}
+
+h3 {
+  color: #666;
+}
+
+a {
+  text-decoration: none;
+  color: #00698f;
+}
+
+a:hover {
+  color: #003d5f;
+}
+
+#telegram-login-button {
+  width: 100%;
+  text-align: center;
+  padding: 20px;
+  background-color: #ff69b4; /* changed button color to pink */
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#telegram-login-button:hover {
+  background-color: #ff33a6; /* changed hover color to a darker pink */
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+ul li {
+  padding: 10px;
+  border-bottom: 1px solid #ccc;
+}
+
+ul li:last-child {
+  border-bottom: none;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: left;
+}
+
+th {
+  background-color: #f0f0f0;
+}
+
+img {
+  width: 100%;
+  height: auto;
+  margin: 20px 0;
+}
+    </style>
     <script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="football_pong_bot" data-size="large" data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script type="module">
@@ -34,23 +113,71 @@
         };
     </script>
 </head>
+</body>
 <body>
     <h1>Burrito Safe Space</h1>
     <a href="index.html">Back to Game</a>
-
+  
     <h2>Goalbits</h2>
-    <p>Goalbits are our in game currency which allows for in game purchases! These are won in game, and can be accured by making an account.</p>
-
+    <p>Goalbits are our in-game currency which allows for in-game purchases! These are won in-game, and can be accrued by making an account.</p>
+    <p>Earn Goalbits by completing levels, achieving milestones, and participating in special events!</p>
+    <ul>
+      <li>10 Goalbits: Unlock exclusive in-game content</li>
+      <li>50 Goalbits: Get a bonus power-up</li>
+      <li>100 Goalbits: Access premium levels</li>
+    </ul>
+  
     <h2>Burrito Prize</h2>
     <p>Beat all of our levels, and win a burrito NFT!</p>
     <p>Log in with your TON Keeper Wallet in order to claim this Jetton!</p>
+    <img src="burrito-nft.png" alt="Burrito NFT" width="200" height="200">
+    <p>This limited edition Burrito NFT is only available to players who complete all levels. Don't miss out!</p>
+  
     <h3>Log in by Telegram</h3>
     <div id="telegram-login-button"></div>
-   
-
+    <p>By logging in with Telegram, you'll be able to:</p>
+    <ul>
+      <li>Save your progress</li>
+      <li>Access exclusive content</li>
+      <li>Compete with friends</li>
+    </ul>
+  
     <h3>Nft Collection</h3>
     <p><a href="page2.html">Collect your NFT here </a></p>
-
-
-</body>
+    <p>View and manage your NFT collection, including your Burrito Prize!</p>
+    <img src="nft-collection.png" alt="NFT Collection" width="200" height="200">
+  
+    <h3>Leaderboards</h3>
+    <p>Compete with other players to top the leaderboards!</p>
+    <table>
+      <tr>
+        <th>Rank</th>
+        <th>Player</th>
+        <th>Score</th>
+      </tr>
+      <tr>
+        <td>1</td>
+        <td>Player1</td>
+        <td>1000</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Player2</td>
+        <td>900</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Player3</td>
+        <td>800</td>
+      </tr>
+    </table>
+  
+    <h3>News and Updates</h3>
+    <p>Stay up-to-date with the latest news and updates from Burrito Safe Space!</p>
+    <ul>
+      <li>New level added: "Burrito Blast"</li>
+      <li>Updated leaderboard rankings</li>
+      <li>Fixed bug with Goalbit rewards</li>
+    </ul>
+  </body>
 </html>
