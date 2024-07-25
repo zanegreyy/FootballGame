@@ -10,9 +10,7 @@ import { CHAIN } from "@tonconnect/protocol";
 import "@twa-dev/sdk";
 
 const StyledApp = styled.div`
-  background-color: #ffffff;
   color: black;
-  }
   min-height: 100vh;
   padding: 20px 20px;
 `;
