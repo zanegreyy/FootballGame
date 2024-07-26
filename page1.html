@@ -83,36 +83,6 @@ img {
   margin: 20px 0;
 }
     </style>
-    <script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="football_pong_bot" data-size="large" data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script type="module">
-        import { db, doc, setDoc } from './src/firebase/firebase.js';
-    
-        window.onTelegramAuth = async function(user) {
-            console.log('Logged in as ' + user.first_name + ' ' + user.last_name + ' (' + user.id + (user.username ? ', @' + user.username : '') + ')');
-    
-            try {
-                const playerRef = doc(db, 'players', user.id.toString());
-    
-                await setDoc(playerRef, {
-                    firstName: user.first_name,
-                    lastName: user.last_name,
-                    username: user.username || null,
-                    photoUrl: user.photo_url || null,
-                    authDate: user.auth_date,
-                    lastLogin: new Date().toISOString(),
-                    goalBits: 0  // Initialize in-game currency
-                }, { merge: true });
-    
-                console.log('Player data saved successfully');
-                alert('Login successful!');
-    
-            } catch (error) {
-                console.error('Error saving player data:', error);
-                alert('There was an error logging in. Please try again.');
-            }
-        };
-    </script>
 </head>
 </body>
 <body>
@@ -139,6 +109,8 @@ img {
   
     <h3>Leaderboards</h3>
     <p>Compete with other players to top the leaderboards!</p>
+    <p>View the top 10 players in the game, and see how you stack up
+    <p>Coming Soon...</p>
     <table>
       <tr>
         <th>Rank</th>
@@ -161,9 +133,8 @@ img {
         <td>800</td>
       </tr>
     </table>
-
-    <h3>Log in by Telegram</h3>
-    <div id="telegram-login-button"></div>
+    <h3>Log in!</h3>
+    <button id="telegram-login-button">Log in by Telegram</button>
     <p>By logging in with Telegram, you'll be able to:</p>
     <ul>
       <li>Save your progress</li>
